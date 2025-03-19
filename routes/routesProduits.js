@@ -1,20 +1,16 @@
-const express = require('express');
+const { getProductById,getProducts, addProduct, deleteProduct } = require ("../controllers/controlleurProduits.js");
+// const { protect } = require ("../middlewares/authMiddleware.js");
+const express = require("express");
+
+// const upload = require("../middlewares/uploadMiddleware"); 
+
 const router = express.Router();
-const controlleurProduits = require('../controllers/controlleurProduits');
 
-// Route pour récupérer tous les produits
-router.get('/all-produits', controlleurProduits.getAllProduits);
+router.get("/", getProducts);
+router.get("/:id", getProductById);
 
-// Route pour récupérer un produit par ID
-router.get('/:id', controlleurProduits.getProduitById);
 
-// Route pour ajouter un nouveau produit
-router.post('/ajouter', controlleurProduits.createProduit);
-
-// Route pour mettre à jour un produit existant
-router.put('/:id', controlleurProduits.updateProduit);
-
-// Route pour supprimer un produit
-router.delete('/:id', controlleurProduits.deleteProduit);
+router.post("/ajouter", addProduct); 
+router.delete("/:id",  deleteProduct);
 
 module.exports = router;

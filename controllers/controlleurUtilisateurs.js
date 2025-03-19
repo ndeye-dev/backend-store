@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Utilisateurs = require('../models/modeleUtilisateurs');
+const Admin = require("../models/modeleAdmin");
 
 // **Inscription d'un utilisateur**
 const inscriptionUtilisateurs = async (req, res) => {
@@ -59,45 +60,55 @@ const inscriptionUtilisateurs = async (req, res) => {
 };
 // connexion de l'utiilisateur 
 const connexionUtilisateurs = async (req, res) => {
-    const { email, motDePasse } = req.body;
-
     try {
-        const utilisateur = await Utilisateurs.findOne({ email });
+        console.log("Données reçues:", req.body); // Vérifier les données reçues côté serveur
+        const { email, motDePasse } = req.body;
+
+        if (!email || !motDePasse) {
+            return res.status(400).json({ message: "Email et mot de passe requis" });
+        }
+
+        // Vérifier si c'est un administrateur
+        let utilisateur = await Admin.findOne({ email });
+        let role = "admin";
+
         if (!utilisateur) {
-            return res.status(400).json({ message: "Email ou mot de passe incorrect." });
+            // Si ce n'est pas un admin, vérifier si c'est un utilisateur normal
+            utilisateur = await Utilisateurs.findOne({ email });
+            role = "utilisateur";
         }
 
-        const motDePasseValide = await bcrypt.compare(motDePasse, utilisateur.motDePasse);
-        if (!motDePasseValide) {
-            return res.status(400).json({ message: "Email ou mot de passe incorrect." });
+        if (!utilisateur) {
+            return res.status(401).json({ message: "Email ou mot de passe incorrect." });
         }
 
+        // Vérification du mot de passe
+        const isMatch = await bcrypt.compare(motDePasse, utilisateur.motDePasse);
+        if (!isMatch) {
+            return res.status(401).json({ message: "Email ou mot de passe incorrect." });
+        }
+
+        // Génération du token
         const token = jwt.sign(
-            { id: utilisateur._id, email: utilisateur.email },
+            { id: utilisateur._id, role },
             process.env.JWT_SECRET,
             { expiresIn: "1h" }
         );
 
-        res.status(200).json({
-            message: "Connexion réussie.",
-            utilisateur: {
-                id: utilisateur._id,
-                nom: utilisateur.nom,
-                prenom: utilisateur.prenom,
-                email: utilisateur.email,
-                role: utilisateur.role,
-            },
-            token, 
-        });
+        res.json({ token, utilisateur, role });
     } catch (error) {
-        console.error("Erreur lors de la connexion :", error.message);
-        res.status(500).json({ message: "Erreur interne du serveur." });
+        console.error("Erreur serveur:", error);
+        res.status(500).json({ message: "Erreur interne du serveur" });
     }
 };
+
+
+
  //profil utilisateur conecter
 const profilUtilisateur = async (req, res) => {
     try {
         const utilisateur = await Utilisateurs.findById(req.utilisateur.id).select("-motDePasse");
+        // const admin = await Admin.findById(req.admin.id).select("-motDePasse");
 
         if (!utilisateur) {
             return res.status(404).json({ message: "Utilisateur non trouvé." });
@@ -115,4 +126,3 @@ module.exports = {
     connexionUtilisateurs,
     profilUtilisateur
 };
-//
