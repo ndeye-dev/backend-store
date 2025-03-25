@@ -12,23 +12,31 @@ const Product = require ("../models/modeleProduits");
 
 // Récupérer un produit par ID
 const getProductById = async (req, res) => {
+  console.log("Params reçus :", req.params);
   try {
+    if (!req.params.id) {
+      return res.status(400).json({ message: "ID manquant" });
+    }
+
     const product = await Product.findById(req.params.id);
     if (!product) {
       return res.status(404).json({ message: "Produit non trouvé" });
     }
+
     res.json(product);
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur" });
+    console.error("Erreur dans getProductById :", error);
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
+
 
 // Ajouter un produit
 const addProduct = async (req, res) => {
   console.log("Données reçues:", req.body);
 
   const { name, description, price, stock, image } = req.body;
- 
+
  if (!name || !price) {
   return res.status(400).json({ message: "Le nom et le prix sont requis." });
 }
